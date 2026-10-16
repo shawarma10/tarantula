@@ -36,7 +36,5 @@ fn main() -> anyhow::Result<()> {
         .open()?;
 
     println!("Listening for packets (press Ctrl+C to stop)...");
-    capturing::capture_loop(cap);
-
-    Ok(())
+    capturing::capture_loop(cap)
 }

@@ -1,8 +1,8 @@
-use etherparse::{NetSlice, SlicedPacket, TransportSlice};
-use pcap::{Active, Capture};
 use crate::helpers;
+use etherparse::{LinkSlice, NetSlice, SlicedPacket, TransportSlice};
+use pcap::{Active, Capture};
 
-pub fn capture_loop(mut cap: Capture<Active>) {
+pub fn capture_loop(mut cap: Capture<Active>) -> anyhow::Result<()> {
     let mut packet_count = 0;
 
     while let Ok(packet) = cap.next_packet() {
@@ -80,7 +80,18 @@ pub fn capture_loop(mut cap: Capture<Active>) {
                         }
 
                         Some(NetSlice::Arp(_)) => String::from("ARP"),
-                        _ => String::from("Unknown Network Layer"),
+                        None => {
+                            if let Some(LinkSlice::Ethernet2(eth)) = &sliced.link {
+                                format!(
+                                    "Non-IP Ethernet Frame (EtherType: 0x{:04x}, Src: 0x{}, Dst: 0x{})",
+                                    eth.ether_type().0,
+                                    helpers::format_mac_address(&eth.source()),
+                                    helpers::format_mac_address(&eth.destination())
+                                )
+                            } else {
+                                String::from("Unknown Non-Ethernet Frame")
+                            }
+                        }
                     },
                 };
 
@@ -90,4 +101,6 @@ pub fn capture_loop(mut cap: Capture<Active>) {
             Err(_) => println!("Raw frame (could not dissect Ethernet header)"),
         }
     }
+
+    Ok(())
 }

@@ -15,3 +15,10 @@ pub fn format_ip_dst(net: &Option<NetSlice>) -> String {
         _ => "unknown".to_string(),
     }
 }
+
+pub fn format_mac_address(address: &[u8; 6]) -> String {
+    format!(
+        "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+        address[0], address[1], address[2], address[3], address[4], address[5]
+    )
+}
