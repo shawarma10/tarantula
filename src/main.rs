@@ -1,4 +1,6 @@
-use etherparse::{NetSlice, SlicedPacket, TransportSlice};
+pub mod capturing;
+pub mod helpers;
+
 use pcap::{Capture, Device};
 
 fn main() -> anyhow::Result<()> {
@@ -26,118 +28,15 @@ fn main() -> anyhow::Result<()> {
     println!("\nCapturing on device: '{}'...", default_device.name);
 
     // Configure the handle for capturing packets
-    let mut cap = Capture::from_device(default_device)?
+    let cap = Capture::from_device(default_device)?
         .promisc(true)
         .snaplen(65535)
         .timeout(1000)
         .immediate_mode(true)
         .open()?;
 
-    println!("Listening for packets (press Ctrl+C to stop)...\n");
-    let mut packet_count = 0;
-
-    // Main loop
-    while let Ok(packet) = cap.next_packet() {
-        packet_count += 1;
-        let ts = packet.header.ts;
-        let len = packet.header.len;
-
-        print!(
-            "[{:>5}] {}.{:06} | Length: {:>5} bytes | ",
-            packet_count, ts.tv_sec, ts.tv_usec, len
-        );
-
-        match SlicedPacket::from_ethernet(packet.data) {
-            Ok(sliced) => {
-                let transport_info = match sliced.transport {
-                    Some(TransportSlice::Tcp(tcp)) => {
-                        format!(
-                            "TCP {}:{} -> {}:{}",
-                            format_ip_src(&sliced.net),
-                            tcp.source_port(),
-                            format_ip_dst(&sliced.net),
-                            tcp.destination_port()
-                        )
-                    }
-
-                    Some(TransportSlice::Udp(udp)) => {
-                        format!(
-                            "UDP {}:{} -> {}:{}",
-                            format_ip_src(&sliced.net),
-                            udp.source_port(),
-                            format_ip_dst(&sliced.net),
-                            udp.destination_port()
-                        )
-                    }
-
-                    Some(TransportSlice::Icmpv4(_)) => {
-                        format!(
-                            "ICMPv4 {} -> {}",
-                            format_ip_src(&sliced.net),
-                            format_ip_dst(&sliced.net)
-                        )
-                    }
-
-                    Some(TransportSlice::Icmpv6(_)) => {
-                        format!(
-                            "ICMPv6 {} -> {}",
-                            format_ip_src(&sliced.net),
-                            format_ip_dst(&sliced.net)
-                        )
-                    }
-
-                    Some(TransportSlice::Igmp(_)) => {
-                        format!(
-                            "IGMP {} -> {}",
-                            format_ip_src(&sliced.net),
-                            format_ip_dst(&sliced.net)
-                        )
-                    }
-
-                    None => match &sliced.net {
-                        Some(NetSlice::Ipv4(ipv4)) => {
-                            format!(
-                                "IPv4 {} -> {}",
-                                ipv4.header().source_addr(),
-                                ipv4.header().destination_addr()
-                            )
-                        }
-
-                        Some(NetSlice::Ipv6(ipv6)) => {
-                            format!(
-                                "IPv6 {} -> {}",
-                                ipv6.header().source_addr(),
-                                ipv6.header().destination_addr()
-                            )
-                        }
-
-                        Some(NetSlice::Arp(_)) => String::from("ARP"),
-                        _ => String::from("Unknown Network Layer"),
-                    },
-                };
-
-                println!("{}", transport_info);
-            }
-
-            Err(_) => println!("Raw frame (could not dissect Ethernet header)"),
-        }
-    }
+    println!("Listening for packets (press Ctrl+C to stop)...");
+    capturing::capture_loop(cap);
 
     Ok(())
-}
-
-fn format_ip_src(net: &Option<NetSlice>) -> String {
-    match net {
-        Some(NetSlice::Ipv4(ipv4)) => ipv4.header().source_addr().to_string(),
-        Some(NetSlice::Ipv6(ipv6)) => ipv6.header().source_addr().to_string(),
-        _ => "unknown".to_string(),
-    }
-}
-
-fn format_ip_dst(net: &Option<NetSlice>) -> String {
-    match net {
-        Some(NetSlice::Ipv4(ipv4)) => ipv4.header().destination_addr().to_string(),
-        Some(NetSlice::Ipv6(ipv6)) => ipv6.header().destination_addr().to_string(),
-        _ => "unknown".to_string(),
-    }
 }
