@@ -1,9 +1,16 @@
 pub mod capturing;
 pub mod helpers;
 
+use std::env::args;
 use pcap::{Capture, Device};
 
 fn main() -> anyhow::Result<()> {
+    let mut filter_string = String::new();
+    for arg in args().skip(1) {
+        filter_string.push_str(&arg);
+        filter_string.push(' ');
+    }
+
     // Discover available network devices
     let devices = Device::list()?;
     if devices.is_empty() {
@@ -28,12 +35,14 @@ fn main() -> anyhow::Result<()> {
     println!("\nCapturing on device: '{}'...", default_device.name);
 
     // Configure the handle for capturing packets
-    let cap = Capture::from_device(default_device)?
+    let mut cap = Capture::from_device(default_device)?
         .promisc(true)
         .snaplen(65535)
         .timeout(1000)
         .immediate_mode(true)
         .open()?;
+
+    cap.filter(&filter_string, true)?;
 
     println!("Listening for packets (press Ctrl+C to stop)...");
     capturing::capture_loop(cap)
