@@ -1,8 +1,8 @@
 pub mod capturing;
 pub mod helpers;
 
-use std::env::args;
 use pcap::{Capture, Device};
+use std::env::args;
 
 fn main() -> anyhow::Result<()> {
     let mut filter_string = String::new();

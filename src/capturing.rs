@@ -16,90 +16,86 @@ pub fn capture_loop(mut cap: Capture<Active>) -> anyhow::Result<()> {
         );
 
         match SlicedPacket::from_ethernet(packet.data) {
-            Ok(sliced) => {
-                let transport_info = match sliced.transport {
-                    Some(TransportSlice::Tcp(tcp)) => {
-                        format!(
-                            "TCP {}:{} -> {}:{}",
-                            helpers::format_ip_src(&sliced.net),
-                            tcp.source_port(),
-                            helpers::format_ip_dst(&sliced.net),
-                            tcp.destination_port()
+            Ok(sliced) => match sliced.transport {
+                Some(TransportSlice::Tcp(tcp)) => {
+                    println!(
+                        "TCP {}:{} -> {}:{}",
+                        helpers::format_ip_src(&sliced.net),
+                        tcp.source_port(),
+                        helpers::format_ip_dst(&sliced.net),
+                        tcp.destination_port()
+                    )
+                }
+
+                Some(TransportSlice::Udp(udp)) => {
+                    println!(
+                        "UDP {}:{} -> {}:{}",
+                        helpers::format_ip_src(&sliced.net),
+                        udp.source_port(),
+                        helpers::format_ip_dst(&sliced.net),
+                        udp.destination_port()
+                    )
+                }
+
+                Some(TransportSlice::Icmpv4(_)) => {
+                    println!(
+                        "ICMPv4 {} -> {}",
+                        helpers::format_ip_src(&sliced.net),
+                        helpers::format_ip_dst(&sliced.net)
+                    )
+                }
+
+                Some(TransportSlice::Icmpv6(_)) => {
+                    println!(
+                        "ICMPv6 {} -> {}",
+                        helpers::format_ip_src(&sliced.net),
+                        helpers::format_ip_dst(&sliced.net)
+                    )
+                }
+
+                Some(TransportSlice::Igmp(_)) => {
+                    println!(
+                        "IGMP {} -> {}",
+                        helpers::format_ip_src(&sliced.net),
+                        helpers::format_ip_dst(&sliced.net)
+                    )
+                }
+
+                None => match &sliced.net {
+                    Some(NetSlice::Ipv4(ipv4)) => {
+                        println!(
+                            "IPv4 {} -> {}",
+                            ipv4.header().source_addr(),
+                            ipv4.header().destination_addr()
                         )
                     }
 
-                    Some(TransportSlice::Udp(udp)) => {
-                        format!(
-                            "UDP {}:{} -> {}:{}",
-                            helpers::format_ip_src(&sliced.net),
-                            udp.source_port(),
-                            helpers::format_ip_dst(&sliced.net),
-                            udp.destination_port()
+                    Some(NetSlice::Ipv6(ipv6)) => {
+                        println!(
+                            "IPv6 {} -> {}",
+                            ipv6.header().source_addr(),
+                            ipv6.header().destination_addr()
                         )
                     }
 
-                    Some(TransportSlice::Icmpv4(_)) => {
-                        format!(
-                            "ICMPv4 {} -> {}",
-                            helpers::format_ip_src(&sliced.net),
-                            helpers::format_ip_dst(&sliced.net)
-                        )
-                    }
-
-                    Some(TransportSlice::Icmpv6(_)) => {
-                        format!(
-                            "ICMPv6 {} -> {}",
-                            helpers::format_ip_src(&sliced.net),
-                            helpers::format_ip_dst(&sliced.net)
-                        )
-                    }
-
-                    Some(TransportSlice::Igmp(_)) => {
-                        format!(
-                            "IGMP {} -> {}",
-                            helpers::format_ip_src(&sliced.net),
-                            helpers::format_ip_dst(&sliced.net)
-                        )
-                    }
-
-                    None => match &sliced.net {
-                        Some(NetSlice::Ipv4(ipv4)) => {
-                            format!(
-                                "IPv4 {} -> {}",
-                                ipv4.header().source_addr(),
-                                ipv4.header().destination_addr()
+                    Some(NetSlice::Arp(_)) => println!("ARP"),
+                    None => {
+                        if let Some(LinkSlice::Ethernet2(eth)) = &sliced.link {
+                            println!(
+                                "Non-IP Ethernet Frame (EtherType: 0x{:04x}, Src: 0x{}, Dst: 0x{})",
+                                eth.ether_type().0,
+                                helpers::format_mac_address(&eth.source()),
+                                helpers::format_mac_address(&eth.destination())
                             )
+                        } else {
+                            println!("Unknown Non-Ethernet Frame")
                         }
-
-                        Some(NetSlice::Ipv6(ipv6)) => {
-                            format!(
-                                "IPv6 {} -> {}",
-                                ipv6.header().source_addr(),
-                                ipv6.header().destination_addr()
-                            )
-                        }
-
-                        Some(NetSlice::Arp(_)) => String::from("ARP"),
-                        None => {
-                            if let Some(LinkSlice::Ethernet2(eth)) = &sliced.link {
-                                format!(
-                                    "Non-IP Ethernet Frame (EtherType: 0x{:04x}, Src: 0x{}, Dst: 0x{})",
-                                    eth.ether_type().0,
-                                    helpers::format_mac_address(&eth.source()),
-                                    helpers::format_mac_address(&eth.destination())
-                                )
-                            } else {
-                                String::from("Unknown Non-Ethernet Frame")
-                            }
-                        }
-                    },
-                };
-
-                println!("{}", transport_info);
-            }
+                    }
+                },
+            },
 
             Err(_) => println!("Raw frame (could not dissect Ethernet header)"),
-        }
+        };
     }
 
     Ok(())
