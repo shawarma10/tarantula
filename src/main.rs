@@ -1,22 +1,17 @@
 pub mod capturing;
 pub mod helpers;
+pub mod flags;
 
 use pcap::{Capture, Device};
-use std::env::args;
+use clap::Parser;
 
 fn main() -> anyhow::Result<()> {
-    let mut filter_string = String::new();
-    for arg in args().skip(1) {
-        filter_string.push_str(&arg);
-        filter_string.push(' ');
-    }
+    let flags = flags::Flags::parse();
 
     // Discover available network devices
     let devices = Device::list()?;
     if devices.is_empty() {
-        eprintln!(
-            "No network interfaces found. Ensure sufficient privileges (e.g. sudo or CAP_NET_RAW)."
-        );
+        eprintln!("No network interfaces found. Try running with root/admin privileges.");
         return Ok(());
     }
 
@@ -42,8 +37,8 @@ fn main() -> anyhow::Result<()> {
         .immediate_mode(true)
         .open()?;
 
-    cap.filter(&filter_string, true)?;
+    cap.filter(&flags.filter_string, true)?;
 
     println!("Listening for packets (press Ctrl+C to stop)...");
-    capturing::capture_loop(cap)
+    capturing::capture_loop(cap, &flags)
 }

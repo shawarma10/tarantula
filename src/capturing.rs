@@ -1,8 +1,8 @@
-use crate::helpers;
+use crate::{flags, helpers};
 use etherparse::{LinkSlice, NetSlice, SlicedPacket, TransportSlice};
 use pcap::{Active, Capture};
 
-pub fn capture_loop(mut cap: Capture<Active>) -> anyhow::Result<()> {
+pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::Result<()> {
     let mut packet_count = 0;
 
     while let Ok(packet) = cap.next_packet() {
@@ -85,7 +85,9 @@ pub fn capture_loop(mut cap: Capture<Active>) -> anyhow::Result<()> {
             Err(_) => println!("Raw frame (could not dissect Ethernet header)"),
         };
 
-        println!("{}", helpers::format_data(packet.data, 8));
+        if flags.show_package_bytes {
+            println!("{}", helpers::format_data(packet.data, 8));
+        }
     }
 
     Ok(())
