@@ -10,4 +10,13 @@ pub struct Flags {
     /// Show package bytes as hex-represented numbers
     #[arg(short, long, default_value_t = false)]
     pub show_package_bytes: bool,
+
+    /// Uses a specific device for connection capturing.
+    /// Find available devices with the `-a` flag
+    #[arg(short='d', long)]
+    pub device: Option<usize>,
+
+    /// Only shows available devices for connection capturing
+    #[arg(short='a', long, default_value_t = false)]
+    pub show_available_devices: bool
 }
