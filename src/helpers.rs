@@ -1,5 +1,5 @@
-use std::time::{SystemTime, UNIX_EPOCH};
 use etherparse::NetSlice;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn format_ip_src(net: &Option<NetSlice>) -> String {
     match net {
