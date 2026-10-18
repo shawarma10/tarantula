@@ -1,10 +1,11 @@
 pub mod capturing;
-pub mod helpers;
 pub mod flags;
+pub mod helpers;
+pub mod json;
 
 use anyhow::bail;
-use pcap::{Capture, Device};
 use clap::Parser;
+use pcap::{Capture, Device};
 
 fn main() -> anyhow::Result<()> {
     let flags = flags::Flags::parse();
@@ -29,16 +30,18 @@ fn main() -> anyhow::Result<()> {
     let default_device = match flags.device {
         Some(device) => match devices.get(device) {
             Some(d) => d.clone(),
-            None => bail!("Invalid device index: {} (No such device)", device)
-        }
+            None => bail!("Invalid device index: {} (No such device)", device),
+        },
 
         None => match Device::lookup()? {
             Some(dev) => dev,
             None => devices[0].clone(),
-        }
+        },
     };
 
-    println!("\nCapturing on device: '{}'...", default_device.name);
+    if !flags.json {
+        println!("\nCapturing on device: '{}'...", default_device.name);
+    }
 
     // Configure the handle for capturing packets
     let mut cap = Capture::from_device(default_device)?
@@ -50,6 +53,9 @@ fn main() -> anyhow::Result<()> {
 
     cap.filter(&flags.filter_string, true)?;
 
-    println!("Listening for packets (press Ctrl+C to stop)...");
+    if !flags.json {
+        println!("Listening for packets (press Ctrl+C to stop)...");
+    }
+
     capturing::capture_loop(cap, &flags)
 }

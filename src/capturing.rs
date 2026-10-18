@@ -1,4 +1,4 @@
-use crate::{flags, helpers};
+use crate::{flags, helpers, json};
 use etherparse::{LinkSlice, NetSlice, SlicedPacket, TransportSlice};
 use pcap::{Active, Capture};
 
@@ -9,6 +9,120 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
         packet_count += 1;
         let ts = packet.header.ts;
         let len = packet.header.len;
+
+        if flags.json {
+            let json_packet = match SlicedPacket::from_ethernet(packet.data) {
+                Ok(sliced) => match sliced.transport {
+                    Some(TransportSlice::Tcp(tcp)) => json::JsonPacket {
+                        protocol: "TCP".to_string(),
+                        length: len,
+                        src_ip: Some(helpers::format_ip_src(&sliced.net)),
+                        dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
+                        src_port: Some(tcp.source_port()),
+                        dst_port: Some(tcp.destination_port()),
+                    },
+
+                    Some(TransportSlice::Udp(udp)) => json::JsonPacket {
+                        protocol: "UDP".to_string(),
+                        length: len,
+                        src_ip: Some(helpers::format_ip_src(&sliced.net)),
+                        dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
+                        src_port: Some(udp.source_port()),
+                        dst_port: Some(udp.destination_port()),
+                    },
+
+                    Some(TransportSlice::Icmpv4(_)) => json::JsonPacket {
+                        protocol: "ICMPv4".to_string(),
+                        length: len,
+                        src_ip: Some(helpers::format_ip_src(&sliced.net)),
+                        dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
+                        src_port: None,
+                        dst_port: None,
+                    },
+
+                    Some(TransportSlice::Icmpv6(_)) => json::JsonPacket {
+                        protocol: "ICMPv6".to_string(),
+                        length: len,
+                        src_ip: Some(helpers::format_ip_src(&sliced.net)),
+                        dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
+                        src_port: None,
+                        dst_port: None,
+                    },
+
+                    Some(TransportSlice::Igmp(_)) => json::JsonPacket {
+                        protocol: "IGMP".to_string(),
+                        length: len,
+                        src_ip: Some(helpers::format_ip_src(&sliced.net)),
+                        dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
+                        src_port: None,
+                        dst_port: None,
+                    },
+
+                    None => match &sliced.net {
+                        Some(NetSlice::Ipv4(ipv4)) => json::JsonPacket {
+                            protocol: "IPv4".to_string(),
+                            length: len,
+                            src_ip: Some(ipv4.header().source_addr().to_string()),
+                            dst_ip: Some(ipv4.header().destination_addr().to_string()),
+                            src_port: None,
+                            dst_port: None,
+                        },
+
+                        Some(NetSlice::Ipv6(ipv6)) => json::JsonPacket {
+                            protocol: "IPv6".to_string(),
+                            length: len,
+                            src_ip: Some(ipv6.header().source_addr().to_string()),
+                            dst_ip: Some(ipv6.header().destination_addr().to_string()),
+                            src_port: None,
+                            dst_port: None,
+                        },
+
+                        Some(NetSlice::Arp(_)) => json::JsonPacket {
+                            protocol: "ARP".to_string(),
+                            length: len,
+                            src_ip: None,
+                            dst_ip: None,
+                            src_port: None,
+                            dst_port: None,
+                        },
+
+                        None => {
+                            if let Some(LinkSlice::Ethernet2(_)) = &sliced.link {
+                                json::JsonPacket {
+                                    protocol: "Ethernet".to_string(),
+                                    length: len,
+                                    src_ip: None,
+                                    dst_ip: None,
+                                    src_port: None,
+                                    dst_port: None,
+                                }
+                            } else {
+                                json::JsonPacket {
+                                    protocol: "Unknown".to_string(),
+                                    length: len,
+                                    src_ip: None,
+                                    dst_ip: None,
+                                    src_port: None,
+                                    dst_port: None,
+                                }
+                            }
+                        }
+                    },
+                },
+
+                Err(_) => json::JsonPacket {
+                    protocol: "Raw".to_string(),
+                    length: len,
+                    src_ip: None,
+                    dst_ip: None,
+                    src_port: None,
+                    dst_port: None,
+                },
+            };
+
+            println!("{}", serde_json::to_string(&json_packet)?);
+            continue;
+        }
 
         print!(
             "[{:>5}] {}.{:06} | Length: {:>5} bytes | ",
