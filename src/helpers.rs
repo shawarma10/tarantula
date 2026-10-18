@@ -1,3 +1,4 @@
+use std::time::{SystemTime, UNIX_EPOCH};
 use etherparse::NetSlice;
 
 pub fn format_ip_src(net: &Option<NetSlice>) -> String {
@@ -59,4 +60,8 @@ pub fn format_data(data: &[u8], bytes_per_line: usize) -> String {
 
     result.push('\n');
     result
+}
+
+pub fn current_unix_secs() -> anyhow::Result<u64> {
+    Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())
 }

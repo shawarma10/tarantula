@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct JsonPacket {
     pub protocol: String,
     pub length: u32,
+    pub time: u64, // Unix timestamp in milliseconds
     pub src_ip: Option<String>,
     pub dst_ip: Option<String>,
     pub src_port: Option<u16>,
@@ -14,6 +15,7 @@ impl JsonPacket {
     pub fn new(
         protocol: impl Into<String>,
         length: u32,
+        time: u64,
         src_ip: Option<String>,
         dst_ip: Option<String>,
         src_port: Option<u16>,
@@ -22,6 +24,7 @@ impl JsonPacket {
         Self {
             protocol: protocol.into(),
             length,
+            time,
             src_ip,
             dst_ip,
             src_port,

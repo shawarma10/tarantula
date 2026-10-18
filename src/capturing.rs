@@ -16,6 +16,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                     Some(TransportSlice::Tcp(tcp)) => json::JsonPacket {
                         protocol: "TCP".to_string(),
                         length: len,
+                        time: helpers::current_unix_secs()?,
                         src_ip: Some(helpers::format_ip_src(&sliced.net)),
                         dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
                         src_port: Some(tcp.source_port()),
@@ -25,6 +26,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                     Some(TransportSlice::Udp(udp)) => json::JsonPacket {
                         protocol: "UDP".to_string(),
                         length: len,
+                        time: helpers::current_unix_secs()?,
                         src_ip: Some(helpers::format_ip_src(&sliced.net)),
                         dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
                         src_port: Some(udp.source_port()),
@@ -34,6 +36,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                     Some(TransportSlice::Icmpv4(_)) => json::JsonPacket {
                         protocol: "ICMPv4".to_string(),
                         length: len,
+                        time: helpers::current_unix_secs()?,
                         src_ip: Some(helpers::format_ip_src(&sliced.net)),
                         dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
                         src_port: None,
@@ -43,6 +46,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                     Some(TransportSlice::Icmpv6(_)) => json::JsonPacket {
                         protocol: "ICMPv6".to_string(),
                         length: len,
+                        time: helpers::current_unix_secs()?,
                         src_ip: Some(helpers::format_ip_src(&sliced.net)),
                         dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
                         src_port: None,
@@ -52,6 +56,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                     Some(TransportSlice::Igmp(_)) => json::JsonPacket {
                         protocol: "IGMP".to_string(),
                         length: len,
+                        time: helpers::current_unix_secs()?,
                         src_ip: Some(helpers::format_ip_src(&sliced.net)),
                         dst_ip: Some(helpers::format_ip_dst(&sliced.net)),
                         src_port: None,
@@ -62,6 +67,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                         Some(NetSlice::Ipv4(ipv4)) => json::JsonPacket {
                             protocol: "IPv4".to_string(),
                             length: len,
+                            time: helpers::current_unix_secs()?,
                             src_ip: Some(ipv4.header().source_addr().to_string()),
                             dst_ip: Some(ipv4.header().destination_addr().to_string()),
                             src_port: None,
@@ -71,6 +77,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                         Some(NetSlice::Ipv6(ipv6)) => json::JsonPacket {
                             protocol: "IPv6".to_string(),
                             length: len,
+                            time: helpers::current_unix_secs()?,
                             src_ip: Some(ipv6.header().source_addr().to_string()),
                             dst_ip: Some(ipv6.header().destination_addr().to_string()),
                             src_port: None,
@@ -80,6 +87,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                         Some(NetSlice::Arp(_)) => json::JsonPacket {
                             protocol: "ARP".to_string(),
                             length: len,
+                            time: helpers::current_unix_secs()?,
                             src_ip: None,
                             dst_ip: None,
                             src_port: None,
@@ -91,6 +99,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                                 json::JsonPacket {
                                     protocol: "Ethernet".to_string(),
                                     length: len,
+                                    time: helpers::current_unix_secs()?,
                                     src_ip: None,
                                     dst_ip: None,
                                     src_port: None,
@@ -100,6 +109,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                                 json::JsonPacket {
                                     protocol: "Unknown".to_string(),
                                     length: len,
+                                    time: helpers::current_unix_secs()?,
                                     src_ip: None,
                                     dst_ip: None,
                                     src_port: None,
@@ -113,6 +123,7 @@ pub fn capture_loop(mut cap: Capture<Active>, flags: &flags::Flags) -> anyhow::R
                 Err(_) => json::JsonPacket {
                     protocol: "Raw".to_string(),
                     length: len,
+                    time: helpers::current_unix_secs()?,
                     src_ip: None,
                     dst_ip: None,
                     src_port: None,
