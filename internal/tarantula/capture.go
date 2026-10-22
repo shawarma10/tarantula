@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-
-	//"os/signal"
-	//"syscall"
 	"time"
 
 	"github.com/google/gopacket/pcap"
@@ -99,9 +96,8 @@ func Run(args []string) error {
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
-		for range c {
-			running = false
-		}
+		<-c
+		running = false
 	}()
 
 	return capturePackets(context.Background(), handle, opts, &running)
